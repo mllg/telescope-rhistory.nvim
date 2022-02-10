@@ -31,9 +31,12 @@ local get_rhistory = function(opts)
                     return {}
                 end
 
+                fn = fn:expand()
+                vim.cmd("call g:SendCmdToR('utils::savehistory(" .. fn .. "') # [history skip]")
+
                 local hash = {}
                 local results = {}
-                for line in io.lines(fn:expand()) do
+                for line in io.lines() do
                     local str = vim.trim(line)
                     if (
                         #str >= match_min_chars and 
