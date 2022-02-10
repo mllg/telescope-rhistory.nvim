@@ -17,6 +17,17 @@ local action_state = require("telescope.actions.state")
 local utils = require'telescope.utils'
 local Path = require("plenary.path")
 
+local send_rcmd = function(expr) 
+    vim.cmd('call g:SendCmdToR(\'' .. expr .. '\')')
+end
+
+local keep_line = function(str, hash)
+    return #str > match_min_chars and
+        not hash[str] and
+        str:match(match_whitelist) and 
+        not str:match(match_blacklist)
+end
+
 local get_rhistory = function(opts)
     opts = opts or {}
     opts.hist_file = utils.get_default(opts.hist_file, '~/.Rhistory')
@@ -32,18 +43,13 @@ local get_rhistory = function(opts)
                 end
 
                 fn = fn:expand()
-                vim.cmd("call g:SendCmdToR('utils::savehistory(" .. fn .. "') # [history skip]")
+                send_rcmd('utils::savehistory("' .. fn .. '") # [history skip]')
 
                 local hash = {}
                 local results = {}
-                for line in io.lines() do
+                for line in io.lines(fn) do
                     local str = vim.trim(line)
-                    if (
-                        #str >= match_min_chars and 
-                        not hash[str] and 
-                        str:match(match_whitelist) and 
-                        not str:match(match_blacklist)
-                    ) then
+                    if keep_line(line, hash) then
                         hash[str] = true
                         results[#results + 1] = str
                     end
@@ -57,7 +63,7 @@ local get_rhistory = function(opts)
             actions.select_default:replace(function()
                 actions.close(prompt_bufnr)
                 local selection = action_state.get_selected_entry()
-                vim.cmd("call g:SendCmdToR('" .. selection[1] .. "')")
+                send_rcmd(selection[1])
             end)
             return true
         end
